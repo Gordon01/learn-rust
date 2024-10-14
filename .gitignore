@@ -19,3 +19,6 @@ Cargo.lock
 
 # Temporary PowerPoint files
 keynotes/~$*.pptx
+
+# C builds
+a.out
