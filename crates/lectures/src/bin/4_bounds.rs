@@ -15,7 +15,7 @@ fn print_w_where<D>(value: D)
 where
     D: Display,
 {
-    // Сама `Display` не дает методов, но зато автоматически предоставляет 
+    // Сама `Display` не дает методов, но зато автоматически предоставляет
     // `ToString`, в котором уже есть видимый метод `to_string()`
     println!("{}", value.to_string());
 }

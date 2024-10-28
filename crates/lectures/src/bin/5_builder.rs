@@ -62,6 +62,5 @@ fn main() {
         .tcp(SocketAddrV4::new([127, 0, 0, 1].into(), 6969))
         .name("my_2")
         .max_connections(324)
-        .build()
-        ;
+        .build();
 }

@@ -9,7 +9,7 @@ enum MyError {
 }
 
 // Только напечатает отладочное представление конкретного типа,
-// a `fn main() -> anyhow::Result<()>` использует `anyhow` для печати любых 
+// a `fn main() -> anyhow::Result<()>` использует `anyhow` для печати любых
 // ошибок, и завершения с кодом `-1`.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _: Ipv4Addr = "0.0.0".parse()?;
