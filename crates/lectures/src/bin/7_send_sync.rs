@@ -6,6 +6,13 @@ use std::{
     ptr, thread,
 };
 
+enum FutureState {
+    Begin,
+    FirstIO,
+    SecondIO { text: String, content: String },
+    Finish,
+}
+
 #[derive(Debug)]
 struct Carton<T>(ptr::NonNull<T>);
 
