@@ -1,6 +1,4 @@
-use super::{Color, Mode, Pixel, ScreenInfo};
-
-type Result<T> = core::result::Result<T, Error>;
+use super::{Color, Error, Mode, Pixel, Result, ScreenInfo};
 
 /// Один экран
 pub struct Screen {
@@ -59,18 +57,6 @@ impl Default for Screen {
         };
         Self::from(info)
     }
-}
-
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum Error {
-    #[error("Координата Х({0}) больше ширины экрана {1}")]
-    XOutOfRange(u32, u32),
-    #[error("Координата Y({0}) больше высоты экрана {1}")]
-    YOutOfRange(u32, u32),
-    #[error("Экран не поддерживает цвета")]
-    NoColor,
-    #[error("Экран не графический")]
-    NotGraphical,
 }
 
 #[cfg(test)]

@@ -86,14 +86,14 @@ impl Api {
         #[allow(unused_variables)] addr: Path<String>,
         id: HwId,
     ) -> PutPixelResponse {
-        let res = screens.map(&id, |s| s.set_pixel(&pixel).unwrap());
+        let res = screens.set_pixel(&id, &pixel);
         let _ = PIXEL_CHANNEL.0.send(PixelEvent {
             id: id.to_string(),
             pixel,
         });
         match res {
-            Some(_) => PutPixelResponse::Ok,
-            None => PutPixelResponse::ScreenNotFound,
+            Ok(_) => PutPixelResponse::Ok,
+            Err(_) => PutPixelResponse::ScreenNotFound,
         }
     }
 

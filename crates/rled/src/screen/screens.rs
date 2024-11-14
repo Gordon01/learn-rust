@@ -5,7 +5,7 @@ use std::{
 
 use tracing::info;
 
-use super::{HwId, Screen, ScreenInfo};
+use super::{Error, HwId, Pixel, Result, Screen, ScreenInfo};
 
 /// Хранит все обнаруженные экраны. Внутри использует подсчет ссылок, поэтому
 /// ее можно клонировать.
@@ -35,15 +35,15 @@ impl Screens {
     /// 2. Экран не графический
     pub fn image(&self, id: &HwId) -> Option<Vec<u8>> {
         let screens = self.screens.read().unwrap();
-        info!("HWID: {id:?}");
         screens.get(id).and_then(|s| s.image_data().ok())
     }
 
-    /// Применяет переданную функцию на изменяемую ссылку на экран, если
-    /// он найден. Иначе возвращает `None` и не делает ничего.
-    pub fn map(&self, id: &HwId, f: impl FnOnce(&mut Screen)) -> Option<()> {
+    pub fn set_pixel(&self, id: &HwId, pixel: &Pixel) -> Result<()> {
         let mut screens = self.screens.write().unwrap();
-        screens.get_mut(id).map(f)
+        screens
+            .get_mut(id)
+            .ok_or(Error::NotFound)
+            .and_then(|s| s.set_pixel(pixel))
     }
 }
 
@@ -74,9 +74,7 @@ mod test {
             y: 0,
             color: [1, 2, 3],
         };
-        screens.map(id, |s| {
-            s.set_pixel(&pixel).unwrap();
-        });
+        screens.set_pixel(&id, &pixel).unwrap();
 
         let image = screens.image(id).unwrap();
         assert_eq!([1, 2, 3], image[0..3]);
