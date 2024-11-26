@@ -11,7 +11,7 @@ fn simple_mutex() {
     println!("{m1}");
 
     // Uncomment to avoid hang
-    // drop(m1);
+    drop(m1);
     let mut m2 = m.lock().expect(POISON);
     *m2 = 2;
     println!("{m2}");

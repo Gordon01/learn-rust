@@ -1,0 +1,41 @@
+name: Rust
+on:
+  push:
+defaults:
+  run:
+    working-directory: ./crates
+jobs:
+  check:
+    name: Check sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install requirements
+        run: apt update && apt install -y libdbus-1-dev pkg-config
+      - name: Run Cargo
+        run: cargo check -q --all --tests --examples
+  test:
+    name: Test
+    needs: check
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install requirements
+        run: apt update && apt install -y libdbus-1-dev pkg-config
+      - name: Run Cargo
+        run: cargo test -q
+  lint:
+    name: Lint
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install requirements
+        run: |
+          apt update && apt install -y libdbus-1-dev pkg-config
+          rustup component add clippy
+          rustup component add rustfmt
+      - name: Clippy
+        run: cargo clippy -q --tests --examples
+      - name: Rustfmt
+        run: cargo fmt --all -- --check
