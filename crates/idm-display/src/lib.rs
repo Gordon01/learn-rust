@@ -1,7 +1,8 @@
-mod btle_adapter;
 mod command;
+mod display;
 mod error;
-mod header;
-mod idm_display;
+mod service;
 
-pub use idm_display::IdmDisplay;
+pub use command::IdmCommand;
+pub use display::IdmDisplay;
+pub use service::IdmService;

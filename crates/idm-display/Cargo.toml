@@ -12,5 +12,5 @@ futures = "0.3.31"
 image = "0.25.5"
 thiserror = "2.0.3"
 tokio = { version = "1.41.1", features = ["full"] }
-tokio-async-drop = "0.1.0"
 uuid = "1.11.0"
+chrono = "0.4.38"

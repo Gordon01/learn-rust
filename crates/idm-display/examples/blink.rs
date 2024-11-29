@@ -1,18 +1,25 @@
-use idm_display::IdmDisplay;
+use idm_display::{IdmCommand, IdmService};
 use std::time::{Duration, Instant};
 
-const DEVICE_NAME: &str = "IDM-FAACB1";
-
+// Example of crate usage
 #[tokio::main]
 async fn main() {
-    let display = IdmDisplay::new(DEVICE_NAME).await.unwrap();
-    let start = Instant::now();
+    let service = IdmService::new().await.unwrap();
+    let mut listener = service.subscribe().await;
+    let mut displays = Vec::new();
 
+    if let Ok(display) = listener.recv().await {
+        displays.push(display);
+    }
+
+    let display = displays.first().unwrap();
+    let start = Instant::now();
     while start.elapsed() < Duration::from_secs(4) {
-        display.switch_off().await.unwrap();
+        display.send(IdmCommand::SwitchOff).await.unwrap();
         tokio::time::sleep(Duration::from_millis(500)).await;
 
-        display.switch_on().await.unwrap();
+        display.send(IdmCommand::SwitchOn).await.unwrap();
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
+    display.disconnect().await.unwrap();
 }
