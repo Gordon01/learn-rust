@@ -3,7 +3,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 #[test]
-
+#[should_panic]
 fn simple_refcell() {
     let rc = RefCell::new(1);
     let r1 = rc.borrow();

@@ -3,8 +3,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use tracing::info;
-
 use super::{Error, HwId, Pixel, Result, Screen, ScreenInfo};
 
 /// Хранит все обнаруженные экраны. Внутри использует подсчет ссылок, поэтому

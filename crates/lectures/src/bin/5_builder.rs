@@ -1,5 +1,6 @@
 use std::net::SocketAddrV4;
 
+#[allow(dead_code)]
 struct Server {
     tcp: SocketAddrV4,
     name: String,
@@ -55,7 +56,7 @@ impl<Socket> ServerBuilder<Socket> {
 }
 
 fn main() {
-    let s = Server::builder()
+    let _ = Server::builder()
         .name("my_srv")
         .max_connections(32)
         // .build()
