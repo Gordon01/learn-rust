@@ -68,12 +68,10 @@ impl Screens {
     }
 
     /// Возвращает данные изображения экрана в виде байтов
-    /// TODO: Возвращать Result, так как ошибок может быть несколько:
-    /// 1. Экран не найден
-    /// 2. Экран не графический
-    pub fn image(&self, id: &HwId) -> Option<Vec<u8>> {
+    pub fn image(&self, id: &HwId) -> Result<Vec<u8>> {
         let screens = self.screens.read().unwrap();
-        screens.get(id).and_then(|s| s.image_data().ok())
+        let screen = screens.get(id).ok_or(Error::NotFound)?;
+        screen.image_data().map_err(|_| Error::NotGraphical)
     }
 
     pub fn set_pixel(&self, id: &HwId, pixel: &Pixel) -> Result<()> {

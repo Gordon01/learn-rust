@@ -4,7 +4,7 @@ members = ["lectures", "rled", "idm-display"]
 
 [workspace.dependencies]
 anyhow = "1.0"
-poem = "3.1"
+poem = { version = "3.1", features = ["test"] }
 poem-openapi = { version = "5.1", features = ["swagger-ui"] }
 thiserror = "1.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

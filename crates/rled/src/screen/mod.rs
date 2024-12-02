@@ -3,6 +3,7 @@ mod hw_id;
 mod screens;
 
 use poem_openapi::{Enum, Object};
+use serde::Serialize;
 
 pub use canvas::Screen;
 pub use hw_id::HwId;
@@ -64,10 +65,10 @@ pub enum Mode {
     SevenSeg,
 }
 
-#[derive(Debug, Object, Clone)]
+#[derive(Debug, Object, Clone, Serialize)]
 pub struct Pixel {
-    x: u32,
-    y: u32,
+    pub x: u32,
+    pub y: u32,
     /// Цвет в формате RGB
-    color: [u8; 3],
+    pub color: [u8; 3],
 }

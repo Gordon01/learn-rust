@@ -18,3 +18,7 @@ keynotes/~$*.pptx
 
 # C builds
 a.out
+
+# VSCode settings 
+crates/.vscode/
+.vscode/

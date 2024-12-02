@@ -20,8 +20,17 @@ impl Screen {
     }
 
     /// Устанавливает значение пикселя на экране
-    /// TODO: проверять, что координаты не выходят за границы
     pub fn set_pixel(&mut self, pixel: &Pixel) -> Result<()> {
+        if self.info.mode != Mode::Graphical {
+            return Err(Error::NotGraphical);
+        }
+        if pixel.x >= self.info.width {
+            return Err(Error::XOutOfRange(pixel.x, self.info.width));
+        }
+        if pixel.y >= self.info.height.unwrap() {
+            return Err(Error::YOutOfRange(pixel.y, self.info.height.unwrap()));
+        }
+
         let offset = ((pixel.x + pixel.y * self.info.width) * 3) as usize;
         if let Some(data) = self.image.as_mut() {
             data[offset..offset + 3].copy_from_slice(&pixel.color);
