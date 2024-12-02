@@ -13,10 +13,13 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error {
     #[error("Координата Х({0}) больше ширины экрана {1}")]
+    #[allow(dead_code)]
     XOutOfRange(u32, u32),
     #[error("Координата Y({0}) больше высоты экрана {1}")]
+    #[allow(dead_code)]
     YOutOfRange(u32, u32),
     #[error("Экран не поддерживает цвета")]
+    #[allow(dead_code)]
     NoColor,
     #[error("Экран не графический")]
     NotGraphical,

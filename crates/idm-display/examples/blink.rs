@@ -15,10 +15,10 @@ async fn main() {
     let display = displays.first().unwrap();
     let start = Instant::now();
     while start.elapsed() < Duration::from_secs(4) {
-        display.send(IdmCommand::SwitchOff).await.unwrap();
+        display.send(IdmCommand::SwitchOff);
         tokio::time::sleep(Duration::from_millis(500)).await;
 
-        display.send(IdmCommand::SwitchOn).await.unwrap();
+        display.send(IdmCommand::SwitchOn);
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
     display.disconnect().await.unwrap();

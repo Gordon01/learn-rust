@@ -1,3 +1,4 @@
+use idm_display::IdmService;
 use poem::{handler, listener::TcpListener, web::Html, Endpoint, EndpointExt, Route, Server};
 use poem_openapi::OpenApiService;
 
@@ -20,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     let yaml_spec = api.spec_endpoint_yaml();
 
     // Добавляем один виртуальный экран
-    let screens = Screens::default();
+    let screens = Screens::new().await;
     screens.insert(ScreenInfo {
         id: "000000".try_into().unwrap(),
         width: 32,
@@ -34,6 +35,23 @@ async fn main() -> anyhow::Result<()> {
         height: Some(16),
         color: screen::Color::Rgb32,
         mode: Mode::Graphical,
+    });
+
+    let cloned_screens = screens.clone();
+    tokio::spawn(async move {
+        let bt_service = IdmService::new().await.unwrap();
+        let mut listener = bt_service.subscribe().await;
+
+        while let Ok(display) = listener.recv().await {
+            let info = ScreenInfo {
+                id: display.address().as_str()[6..12].try_into().unwrap(),
+                width: display.size().0,
+                height: Some(display.size().1),
+                color: screen::Color::Rgb32,
+                mode: Mode::Graphical,
+            };
+            cloned_screens.insert_real(info, display);
+        }
     });
 
     let app = Route::new()

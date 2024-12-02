@@ -25,10 +25,7 @@ async fn main() {
 
         file.read_to_end(&mut bytes_buffer).unwrap();
 
-        display
-            .send(IdmCommand::Gif { bytes_buffer })
-            .await
-            .unwrap();
+        display.send(IdmCommand::Gif { bytes_buffer });
 
         display.disconnect().await.unwrap();
     }

@@ -2052,6 +2052,8 @@ dependencies = [
  "bs58",
  "futures-util",
  "hex",
+ "idm-display",
+ "image",
  "poem",
  "poem-openapi",
  "serde_json",

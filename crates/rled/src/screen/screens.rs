@@ -3,21 +3,61 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use idm_display::{IdmCommand, IdmDisplay};
+use image::Rgb;
+
+use crate::api::PIXEL_CHANNEL;
+
 use super::{Error, HwId, Pixel, Result, Screen, ScreenInfo};
 
 /// Хранит все обнаруженные экраны. Внутри использует подсчет ссылок, поэтому
 /// ее можно клонировать.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Screens {
     screens: Arc<RwLock<HashMap<HwId, Screen>>>,
 }
 
 impl Screens {
+    pub(crate) async fn new() -> Self {
+        let screens = Self {
+            screens: Arc::default(),
+        };
+        let screens_clone = screens.clone();
+
+        tokio::spawn(async move {
+            let mut rx = PIXEL_CHANNEL.1.resubscribe();
+            while let Ok(event) = rx.recv().await {
+                let mut screens = screens_clone.screens.write().unwrap();
+                let id = event.id;
+                let pixel = event.pixel;
+
+                if let Some(screen) = screens.get_mut(&id) {
+                    if let Some(display) = &screen.device {
+                        display.send(IdmCommand::Grafiti {
+                            color: Rgb::from(pixel.color),
+                            x: pixel.x as u8,
+                            y: pixel.y as u8,
+                        })
+                    };
+                }
+            }
+        });
+
+        screens
+    }
     /// Добавляет экран
     /// TODO: добавить проверку что экран уже существует
     pub fn insert(&self, screen: ScreenInfo) {
         let mut screens = self.screens.write().unwrap();
         screens.insert(screen.id.clone(), screen.into());
+    }
+
+    pub fn insert_real(&self, screen_info: ScreenInfo, device: IdmDisplay) {
+        let mut screens = self.screens.write().unwrap();
+        let id = screen_info.id.clone();
+        let mut screen: Screen = screen_info.into();
+        screen.device = Some(device);
+        screens.insert(id, screen);
     }
 
     /// Возвращает информацию об экранах в виде массива. Не включает в себя
@@ -51,9 +91,9 @@ mod test {
 
     use super::Screens;
 
-    #[test]
-    fn add_one_screen() {
-        let screens = Screens::default();
+    #[tokio::test]
+    async fn add_one_screen() {
+        let screens = Screens::new().await;
         let id = "000000".try_into().unwrap();
         screens.insert(ScreenInfo {
             width: 10,

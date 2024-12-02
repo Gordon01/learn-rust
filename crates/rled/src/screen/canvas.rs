@@ -1,3 +1,5 @@
+use idm_display::IdmDisplay;
+
 use super::{Color, Error, Mode, Pixel, Result, ScreenInfo};
 
 /// Один экран
@@ -5,6 +7,7 @@ pub struct Screen {
     info: ScreenInfo,
     /// Значения пикселей в этом экране в формате RGB
     image: Option<Vec<u8>>,
+    pub(crate) device: Option<IdmDisplay>,
 }
 
 impl Screen {
@@ -42,6 +45,7 @@ impl From<ScreenInfo> for Screen {
         Self {
             info: value,
             image: image_data,
+            device: None,
         }
     }
 }

@@ -12,18 +12,19 @@ use tokio_stream::wrappers::BroadcastStream;
 
 use crate::screen::{HwId, Pixel, ScreenInfo, Screens};
 
-/// Событие об изменении пикселя экрана
-#[derive(Object, Clone)]
-struct PixelEvent {
-    /// Идентификатор экрана
-    id: String,
-    pixel: Pixel,
-}
-
-static PIXEL_CHANNEL: LazyLock<(
+pub(crate) static PIXEL_CHANNEL: LazyLock<(
     broadcast::Sender<PixelEvent>,
     broadcast::Receiver<PixelEvent>,
 )> = LazyLock::new(|| broadcast::channel(1024));
+
+/// Событие об изменении пикселя экрана
+#[derive(Object, Clone)]
+pub(crate) struct PixelEvent {
+    /// Идентификатор экрана
+    // pub(crate) id: String,
+    pub(crate) id: HwId,
+    pub(crate) pixel: Pixel,
+}
 
 #[derive(ApiResponse)]
 enum PutPixelResponse {
@@ -35,9 +36,11 @@ enum PutPixelResponse {
     ScreenNotFound,
     /// Координаты пикселя за пределами экрана
     #[oai(status = 400)]
+    #[allow(dead_code)]
     OutOfRange,
     /// Графический режим на этом экране не поддерживается
     #[oai(status = 409)]
+    #[allow(dead_code)]
     NotSupported,
 }
 
@@ -50,6 +53,7 @@ enum GetImageResponce {
     ScreenNotFound,
     /// Графический режим на этом экране не поддерживается
     #[oai(status = 409)]
+    #[allow(dead_code)]
     NotSupported,
 }
 
@@ -88,7 +92,7 @@ impl Api {
     ) -> PutPixelResponse {
         let res = screens.set_pixel(&id, &pixel);
         let _ = PIXEL_CHANNEL.0.send(PixelEvent {
-            id: id.to_string(),
+            id, //id.to_string(),
             pixel,
         });
         match res {
