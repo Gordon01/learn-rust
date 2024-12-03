@@ -9,16 +9,16 @@ function init() {
     screens_ctl = document.getElementById("screen");
     screens_ctl.addEventListener("change", draw_screen);
     populate_selector(screens_ctl);
+    const canvas = document.getElementById("pixels");
 
     var eventSource = new EventSource("/api/events");
     eventSource.onmessage = function (event) {
         var pixel_event = JSON.parse(event.data);
-        if (pixel_event.id != screens_info[screens_ctl.value].id.text) {
+        if (pixel_event.id.text != screens_info[screens_ctl.value].id.text) {
             // Обновляем только пиксели выбранного в данный момент экрана
             return;
         }
 
-        const canvas = document.getElementById("pixels");
         const ctx = canvas.getContext("2d");
         let r = pixel_event.pixel.color[0];
         let g = pixel_event.pixel.color[1];
@@ -26,6 +26,39 @@ function init() {
         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.fillRect(pixel_event.pixel.x, pixel_event.pixel.y, 1, 1);
     }
+
+    canvas.addEventListener("click", function (event) {
+        const x = Math.floor((event.pageX - canvas.offsetLeft + canvas.clientLeft) / scaling_factor);
+        const y = Math.floor((event.pageY - canvas.offsetTop + canvas.clientTop) / scaling_factor);
+        console.log(`Point { x: ${x}, y: ${y} }`);
+
+        const pixelData = {
+            x: x,
+            y: y,
+            color: [255, 0, 0]
+        };
+        const options = {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(pixelData)
+        };
+
+        const addr = screens_info[screens_ctl.value].id.text;
+        fetch("/api/pixel/".concat(addr), options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+            })
+            .then(data => {
+                console.log('Resource updated successfully:', data);
+            })
+            .catch(error => {
+                console.error('There was a problem with your fetch operation:', error);
+            });
+    });
 }
 
 function populate_selector(screens) {
@@ -60,7 +93,7 @@ function draw_screen() {
         ctx.scale(scaling_factor, scaling_factor);
         canvas_scaled = true;
     }
-    
+
     var screen = screens_info[screens_ctl.value];
     var request = new XMLHttpRequest();
     request.open('GET', `/api/image/${screen.id.text}`, true);
@@ -83,6 +116,4 @@ function draw_screen() {
         }
     };
     request.send();
-
-
 }
