@@ -1,3 +1,4 @@
+use chrono::{NaiveDateTime, Timelike};
 use image::Rgb;
 
 const CHUNK_MAX_SIZE: usize = 4096;
@@ -10,8 +11,7 @@ pub enum IdmCommand {
     SwitchOff,
     Grafiti { color: Rgb<u8>, x: u8, y: u8 },
     Gif { bytes_buffer: Vec<u8> },
-    // TODO for Yana:
-    // Time { time: DateTime<Local> },
+    Time { time: NaiveDateTime },
 }
 
 impl IdmCommand {
@@ -89,10 +89,10 @@ impl IdmCommand {
 
                 packets.push(packet);
                 packets
-            } // TODO for Yana: Time command
-              // Self::Time { time } => {
-              //     todo!()
-              // }
+            }
+            Self::Time { time } => { 
+                vec![vec![0x0b, 0x00, 0x01, 0x80, 0xe7, 0x0c, 0x12, 0x01, time.hour() as u8, time.minute() as u8, 0x10]]
+            }
         }
     }
 }
