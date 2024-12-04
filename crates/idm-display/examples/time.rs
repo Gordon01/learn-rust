@@ -9,6 +9,7 @@ async fn main() {
 
     if let Ok(display) = listener.recv().await {
         let time = Local::now().naive_local();
-        display.send(IdmCommand::Time { time }).await.unwrap();
+        display.send(IdmCommand::Time { time });
+        display.disconnect().await.unwrap();
     }
 }

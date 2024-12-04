@@ -90,8 +90,20 @@ impl IdmCommand {
                 packets.push(packet);
                 packets
             }
-            Self::Time { time } => { 
-                vec![vec![0x0b, 0x00, 0x01, 0x80, 0xe7, 0x0c, 0x12, 0x01, time.hour() as u8, time.minute() as u8, 0x10]]
+            Self::Time { time } => {
+                vec![vec![
+                    0x0b,
+                    0x00,
+                    0x01,
+                    0x80,
+                    0xe7,
+                    0x0c,
+                    0x12,
+                    0x01,
+                    time.hour() as u8,
+                    time.minute() as u8,
+                    0x10,
+                ]]
             }
         }
     }
