@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 use futures_util::{stream::BoxStream, StreamExt};
 use poem::web::Data;
 use poem_openapi::{
@@ -7,18 +5,13 @@ use poem_openapi::{
     payload::{EventStream, Json},
     ApiResponse, Object, OpenApi,
 };
-use tokio::sync::broadcast;
+
 use tokio_stream::wrappers::BroadcastStream;
 
 use crate::screen::{Error, HwId, Pixel, ScreenInfo, Screens};
 
-pub(crate) static PIXEL_CHANNEL: LazyLock<(
-    broadcast::Sender<PixelEvent>,
-    broadcast::Receiver<PixelEvent>,
-)> = LazyLock::new(|| broadcast::channel(1024));
-
 /// Событие об изменении пикселя экрана
-#[derive(Object, Clone)]
+#[derive(Object, Clone, Debug)]
 pub(crate) struct PixelEvent {
     /// Идентификатор экрана
     // pub(crate) id: String,
@@ -91,11 +84,7 @@ impl Api {
         #[allow(unused_variables)] addr: Path<String>,
         id: HwId,
     ) -> PutPixelResponse {
-        let res = screens.set_pixel(&id, &pixel);
-        let _ = PIXEL_CHANNEL.0.send(PixelEvent {
-            id, //id.to_string(),
-            pixel,
-        });
+        let res = screens.set_pixel(id, pixel);
         match res {
             Ok(_) => PutPixelResponse::Ok,
             Err(Error::NotFound) => PutPixelResponse::ScreenNotFound,
@@ -108,9 +97,9 @@ impl Api {
     }
 
     #[oai(path = "/events", method = "get")]
-    async fn events(&self) -> EventStream<BoxStream<'static, PixelEvent>> {
+    async fn events(&self, screens: Data<&Screens>) -> EventStream<BoxStream<'static, PixelEvent>> {
         EventStream::new(Box::pin(
-            BroadcastStream::new(PIXEL_CHANNEL.1.resubscribe()).map(|e| e.unwrap()),
+            BroadcastStream::new(screens.resubscribe()).map(|e| e.unwrap()),
         ))
     }
 }
@@ -225,9 +214,10 @@ mod tests {
             color: [1, 2, 3],
         };
         screens
-            .set_pixel(&"000000".try_into().unwrap(), &pixel_data)
+            .set_pixel("000000".try_into().unwrap(), pixel_data)
             .unwrap();
         let image = screens.image(&"000000".try_into().unwrap()).unwrap();
+
         assert_eq!([1, 2, 3], image[0..3]);
     }
 }

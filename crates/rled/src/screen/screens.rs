@@ -3,29 +3,35 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use crate::api::PixelEvent;
 use idm_display::{IdmCommand, IdmDisplay};
 use image::Rgb;
 
-use crate::api::PIXEL_CHANNEL;
-
 use super::{Error, HwId, Pixel, Result, Screen, ScreenInfo};
+use tokio::sync::broadcast;
 
 /// Хранит все обнаруженные экраны. Внутри использует подсчет ссылок, поэтому
 /// ее можно клонировать.
 #[derive(Clone)]
 pub struct Screens {
     screens: Arc<RwLock<HashMap<HwId, Screen>>>,
+
+    channel: Arc<(
+        broadcast::Sender<PixelEvent>,
+        broadcast::Receiver<PixelEvent>,
+    )>,
 }
 
 impl Screens {
     pub(crate) async fn new() -> Self {
         let screens = Self {
             screens: Arc::default(),
+            channel: Arc::new(broadcast::channel(1024)),
         };
         let screens_clone = screens.clone();
 
         tokio::spawn(async move {
-            let mut rx = PIXEL_CHANNEL.1.resubscribe();
+            let mut rx = screens_clone.resubscribe();
             while let Ok(event) = rx.recv().await {
                 let mut screens = screens_clone.screens.write().unwrap();
                 let id = event.id;
@@ -74,12 +80,26 @@ impl Screens {
         screen.image_data().map_err(|_| Error::NotGraphical)
     }
 
-    pub fn set_pixel(&self, id: &HwId, pixel: &Pixel) -> Result<()> {
+    pub fn set_pixel(&self, id: HwId, pixel: Pixel) -> Result<()> {
         let mut screens = self.screens.write().unwrap();
         screens
-            .get_mut(id)
+            .get_mut(&id)
             .ok_or(Error::NotFound)
-            .and_then(|s| s.set_pixel(pixel))
+            .and_then(|s| s.set_pixel(&pixel))?;
+
+        self.channel
+            .0
+            .send(PixelEvent {
+                id: id.clone(),
+                pixel: pixel.clone(),
+            })
+            .expect("BUG: No active receivers");
+
+        Ok(())
+    }
+
+    pub fn resubscribe(&self) -> broadcast::Receiver<PixelEvent> {
+        self.channel.1.resubscribe()
     }
 }
 
@@ -110,7 +130,7 @@ mod test {
             y: 0,
             color: [1, 2, 3],
         };
-        screens.set_pixel(&id, &pixel).unwrap();
+        screens.set_pixel(id.clone(), pixel.clone()).unwrap();
 
         let image = screens.image(id).unwrap();
         assert_eq!([1, 2, 3], image[0..3]);
