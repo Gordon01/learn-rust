@@ -66,6 +66,11 @@ impl Screens {
         screens.insert(id, screen);
     }
 
+    pub fn remove_real(&self, id: HwId) {
+        let mut screens = self.screens.write().unwrap();
+        screens.remove(&id);
+    }
+
     /// Возвращает информацию об экранах в виде массива. Не включает в себя
     /// данные пикселей или строки.
     pub fn list(&self) -> Vec<ScreenInfo> {

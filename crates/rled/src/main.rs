@@ -1,8 +1,8 @@
-use idm_display::IdmService;
+use idm_display::{IdmService, IdmServiceEvent};
 use poem::{handler, listener::TcpListener, web::Html, Endpoint, EndpointExt, Route, Server};
 use poem_openapi::OpenApiService;
 
-use screen::{Mode, ScreenInfo, Screens};
+use screen::{HwId, Mode, ScreenInfo, Screens};
 use tracing::{debug, info};
 
 mod api;
@@ -42,15 +42,24 @@ async fn main() -> anyhow::Result<()> {
         let bt_service = IdmService::new().await.unwrap();
         let mut listener = bt_service.subscribe().await;
 
-        while let Ok(display) = listener.recv().await {
-            let info = ScreenInfo {
-                id: display.address().as_str()[6..12].try_into().unwrap(),
-                width: display.size().0,
-                height: Some(display.size().1),
-                color: screen::Color::Rgb32,
-                mode: Mode::Graphical,
-            };
-            cloned_screens.insert_real(info, display);
+        while let Ok(event) = listener.recv().await {
+            match event {
+                IdmServiceEvent::Connected(display) => {
+                    let info = ScreenInfo {
+                        id: display.address().as_str()[6..12].try_into().unwrap(),
+                        width: display.size().0,
+                        height: Some(display.size().1),
+                        color: screen::Color::Rgb32,
+                        mode: Mode::Graphical,
+                    };
+                    cloned_screens.insert_real(info, display);
+                }
+
+                IdmServiceEvent::Disconnected(addr) => {
+                    let id: HwId = addr.as_str()[6..12].try_into().unwrap();
+                    cloned_screens.remove_real(id);
+                }
+            }
         }
     });
 

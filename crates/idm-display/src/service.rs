@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     error::{Error, Result},
     IdmDisplay,
@@ -5,7 +7,7 @@ use crate::{
 
 use btleplug::{
     api::{Central, CentralEvent, CentralState, Manager, Peripheral as ApiPeripheral, ScanFilter},
-    platform::Adapter,
+    platform::{Adapter, Peripheral, PeripheralId},
 };
 use futures::StreamExt;
 use tokio::sync::broadcast::{self, Receiver, Sender};
@@ -14,21 +16,36 @@ const PREFIX: &str = "IDM-";
 const MAX_DISPLAYS_NUMBER: usize = 3;
 
 pub struct IdmService {
-    rx: Receiver<IdmDisplay>,
+    tx: Sender<IdmServiceEvent>,
+    rx: Receiver<IdmServiceEvent>,
+    btle_adapter: Adapter,
+}
+
+#[derive(Debug, Clone)]
+pub enum IdmServiceEvent {
+    Connected(IdmDisplay),
+    Disconnected(String),
 }
 
 impl IdmService {
-    pub async fn new() -> Result<Self> {
+    pub async fn new() -> Result<Arc<Self>> {
         let btle_manager = btleplug::platform::Manager::new().await?;
         let btle_adapters = btle_manager.adapters().await?;
         let btle_adapter = Self::powered_on(btle_adapters).await?;
 
         let (tx, rx) = broadcast::channel(MAX_DISPLAYS_NUMBER);
+        let idm_service = Arc::new(Self {
+            tx,
+            rx,
+            btle_adapter,
+        });
 
-        // Spawn thread that will search for devices and send them into `tx`
-        tokio::spawn(async move { Self::find_device(btle_adapter, tx).await });
+        let cloned = idm_service.clone();
 
-        Ok(Self { rx })
+        // Spawn thread that will be scanning for devices and will send events into `tx`
+        tokio::spawn(async move { cloned.scan_devices().await });
+
+        Ok(idm_service)
     }
 
     /// Choose first powered on bluetooth adapter
@@ -44,48 +61,62 @@ impl IdmService {
         Err(Error::AdapterNotFound)
     }
 
-    async fn find_device(btle_adapter: Adapter, tx: Sender<IdmDisplay>) {
+    async fn scan_devices(&self) {
         // Start scanning for bluetooth devices
-        btle_adapter
+        self.btle_adapter
             .start_scan(ScanFilter::default())
             .await
             .expect("BUG: Couldn't start scanning");
-        let mut events = btle_adapter
+
+        let mut events = self
+            .btle_adapter
             .events()
             .await
             .expect("BUG: Couldn't get events from bluetooth adapter");
 
-        // FIXME: Rewrite it more simple and clean
         while let Some(event) = events.next().await {
             match event {
                 CentralEvent::DeviceDiscovered(id) => {
-                    if let Ok(discovered_device) = btle_adapter.peripheral(&id).await {
-                        // Check if discovered device has any properties
-                        if let Ok(Some(discovered_property)) = discovered_device.properties().await
-                        {
-                            // Check if discovered device has local name
-                            if let Some(discovered_name) = discovered_property.local_name {
-                                if discovered_name.contains(PREFIX) {
-                                    tx.send(
-                                        IdmDisplay::new(discovered_device)
-                                            .await
-                                            // FIXME: Maybe better use if let Ok(display) = IdmDisplay::new(discovered_device)
-                                            .expect("BUG: Couldn't create `IdmDisplay`"),
-                                    )
-                                    .expect("BUG: There are no active receivers");
-                                }
-                            }
+                    if let Some(device) = self.idm_device(id).await {
+                        if let Ok(display) = IdmDisplay::new(device).await {
+                            self.tx
+                                .send(IdmServiceEvent::Connected(display))
+                                .expect("BUG: There are no active receivers");
                         }
                     }
                 }
 
-                // TODO for Yana: `Implement DeviceDisconnected(PeripheralId)` event
+                CentralEvent::DeviceDisconnected(id) => {
+                    if let Some(device) = self.idm_device(id).await {
+                        let addr = device.address().to_string_no_delim();
+                        self.tx
+                            .send(IdmServiceEvent::Disconnected(addr))
+                            .expect("BUG: There are no active receivers");
+                    }
+                }
                 _ => continue,
             }
         }
     }
 
-    pub async fn subscribe(&self) -> Receiver<IdmDisplay> {
+    async fn idm_device(&self, id: PeripheralId) -> Option<Peripheral> {
+        // Check if `btle_device` with this `id` has been discovered
+        if let Ok(btle_device) = self.btle_adapter.peripheral(&id).await {
+            // Check if discovered `btle_device` has any properties
+            if let Ok(Some(btle_property)) = btle_device.properties().await {
+                // Check if discovered `btle_device` has local name
+                if let Some(btle_device_name) = btle_property.local_name {
+                    if btle_device_name.contains(PREFIX) {
+                        return Some(btle_device);
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    pub async fn subscribe(&self) -> Receiver<IdmServiceEvent> {
         self.rx.resubscribe()
     }
 }
