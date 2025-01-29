@@ -25,6 +25,8 @@ jobs:
         run: apt update && apt install -y libdbus-1-dev pkg-config
       - name: Run Cargo
         run: cargo test -q
+        env:
+          RUST_BACKTRACE: 1
   lint:
     name: Lint
     steps:
