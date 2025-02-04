@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["lectures", "rled", "idm-display"]
+members = ["lectures", "rled", "idm-display", "rendezvous"]
 
 [workspace.dependencies]
 anyhow = "1.0"
