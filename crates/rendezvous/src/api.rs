@@ -1,14 +1,19 @@
 use std::time::Duration;
 
+use futures_util::stream::BoxStream;
 use poem::web::Data;
 use poem_openapi::{
     param::{Path, Query},
-    payload::{Json, PlainText},
+    payload::{EventStream, Json, PlainText},
     ApiResponse, OpenApi,
 };
-use tracing::info;
+use tokio_stream::{wrappers::BroadcastStream, StreamExt};
+use tracing::{debug, error};
 
-use crate::hosts::{Host, Hosts};
+use crate::{
+    hosts::{Host, Hosts},
+    web_log::{LogTail, TraceReceiver},
+};
 
 #[derive(ApiResponse)]
 enum GetHostResponce {
@@ -29,7 +34,7 @@ enum WaitHostResponce {
     Timeout,
     /// Внутренний баг сервера
     #[oai(status = 500)]
-    ISE(PlainText<String>),
+    Ise(PlainText<String>),
 }
 
 pub struct Api;
@@ -49,26 +54,45 @@ impl Api {
     #[oai(path = "/wait/:hostname", method = "get")]
     async fn wait_host(
         &self,
-        hostname: Path<String>,
+        Path(hostname): Path<String>,
         hosts: Data<&Hosts>,
-        /// По умолчанию: 10 seconds
+        /// По умолчанию: 10 секунд
         Query(timeout): Query<Option<String>>,
     ) -> WaitHostResponce {
-        let timeout = Duration::from_secs(
-            timeout
-                .unwrap_or("10".to_string())
-                .parse::<u64>()
-                .ok()
-                .unwrap_or(10),
-        );
+        let timeout =
+            Duration::from_secs(timeout.and_then(|t| t.parse::<u64>().ok()).unwrap_or(10));
 
-        let res = tokio::time::timeout(timeout, hosts.wait_for(hostname.0)).await;
-        info!("wait: {:?}", res);
+        let res = tokio::time::timeout(timeout, hosts.wait_for(&hostname)).await;
         match res {
             Ok(Ok(a)) => WaitHostResponce::Ok(PlainText(a.to_string())),
-            Ok(Err(e)) => WaitHostResponce::ISE(PlainText(e.to_string())), // BUG: Sender dropped
-            Err(_) => WaitHostResponce::Timeout,
+            Ok(Err(e)) => {
+                error!("BUG: Sender has dropped: {e}");
+                WaitHostResponce::Ise(PlainText(e.to_string()))
+            }
+            Err(_) => {
+                debug!("Timed out waiting for {hostname} in {timeout:?}");
+                WaitHostResponce::Timeout
+            }
         }
+    }
+
+    /// Стрим со всеми событиями из лога
+    #[oai(path = "/log/events", method = "get")]
+    async fn log(&self, tracer: Data<&TraceReceiver>) -> EventStream<BoxStream<'static, String>> {
+        EventStream::new(Box::pin(
+            BroadcastStream::new(tracer.resubscribe()).map(|e| e.unwrap()),
+        ))
+    }
+
+    /// Последние строки из лога
+    #[oai(path = "/log/tail", method = "get")]
+    async fn tail(
+        &self,
+        log: Data<&LogTail>,
+        /// Число последних строк (по умолчанию 20)
+        Query(n): Query<Option<usize>>,
+    ) -> PlainText<String> {
+        PlainText(log.tail(n.unwrap_or(20)))
     }
 }
 

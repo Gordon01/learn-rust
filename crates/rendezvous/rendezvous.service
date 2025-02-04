@@ -1,0 +1,23 @@
+[Unit]
+Description=Rendezvous service
+After=network.target
+
+[Service]
+ExecStart=/home/asergeev/.cargo/bin/rendezvous
+
+User=asergeev
+Group=asergeev
+
+StandardOutput=null
+StandardError=journal
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateDevices=true
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -2186,15 +2186,18 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "rendezvous"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "futures-util",
  "poem",
  "poem-openapi",
  "tokio",
+ "tokio-stream",
  "tracing",
+ "tracing-journald",
  "tracing-subscriber",
 ]
 
@@ -2898,6 +2901,17 @@ checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
 dependencies = [
  "once_cell",
  "valuable",
+]
+
+[[package]]
+name = "tracing-journald"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc0b4143302cf1022dac868d521e36e8b27691f72c84b3311750d5188ebba657"
+dependencies = [
+ "libc",
+ "tracing-core",
+ "tracing-subscriber",
 ]
 
 [[package]]

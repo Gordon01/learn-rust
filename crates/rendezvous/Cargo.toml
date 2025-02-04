@@ -1,14 +1,18 @@
 [package]
 name = "rendezvous"
-version = "0.1.0"
+description = "Rendezvous service"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5", features = ["derive"] }
+futures-util.workspace = true
 poem-openapi = { workspace = true, features = ["chrono"] }
 poem.workspace = true
+tokio-stream.workspace = true
 tokio.workspace = true
-tracing.workspace = true
+tracing-journald = "0.3"
 tracing-subscriber.workspace = true
+tracing.workspace = true

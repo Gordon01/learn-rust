@@ -1,23 +1,42 @@
-use hosts::Hosts;
 use poem::{listener::TcpListener, EndpointExt, Route, Server};
 use poem_openapi::OpenApiService;
 use tokio::{net::UdpSocket, select};
-use tracing::info;
+use tracing::{error, info};
+use tracing_subscriber::prelude::*;
+
+use hosts::Hosts;
 use udp_server::UdpServer;
+use web_log::{BroadcastLayer, LogTail};
 
 mod api;
 mod hosts;
 mod udp_server;
+mod web_log;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug");
-    }
-    tracing_subscriber::fmt::init();
+    let (broadcast, tracing_rx) = BroadcastLayer::new();
+    let log_tail = LogTail::new(tracing_rx.clone());
 
-    let api =
-        OpenApiService::new(api::Api, "Рандеву сервер", "1.0").server("http://localhost:8080/api");
+    let registry = tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().compact())
+        .with(broadcast);
+    match tracing_journald::layer() {
+        Ok(layer) => {
+            registry.with(layer).init();
+        }
+        Err(e) => {
+            registry.init();
+            error!("couldn't connect to journald: {}", e);
+        }
+    }
+
+    let api = OpenApiService::new(
+        api::Api,
+        env!("CARGO_PKG_DESCRIPTION"),
+        env!("CARGO_PKG_VERSION"),
+    )
+    .server("http://45.151.30.139:8080/api");
     let help = api.swagger_ui();
     let hosts = Hosts::default();
     let yaml_spec = api.spec_endpoint_yaml(); // Usefull for LLMs
@@ -26,11 +45,13 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api", api)
         .nest("/help", help)
         .nest("/spec", yaml_spec)
-        .data(hosts.clone());
+        .data(hosts.clone())
+        .data(tracing_rx)
+        .data(log_tail);
 
     let http = "0.0.0.0:8080";
     let udp = "0.0.0.0:4200";
-    info!("Listening on: {http}...");
+    info!("Listening on: HTTP: {http}, UDP: {udp}...");
 
     let udp_server = UdpServer {
         hosts,
