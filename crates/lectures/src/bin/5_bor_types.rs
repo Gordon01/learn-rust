@@ -1,3 +1,6 @@
+/// Подробнее о гибкости функций и использовании обобщённых типов (generics)
+/// в Rust можно прочитать в "руководстве по идиомам" https://clck.ru/3GS2d3
+
 fn do_math_iter(it: impl Iterator<Item = u32>) -> u32 {
     it.fold(0, |acc, i| {
         let added = if i % 2 != 0 { 0 } else { i };
