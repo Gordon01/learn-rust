@@ -1,7 +1,7 @@
 [package]
 name = "rendezvous"
 description = "Rendezvous service"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
@@ -16,3 +16,4 @@ tokio.workspace = true
 tracing-journald = "0.3"
 tracing-subscriber.workspace = true
 tracing.workspace = true
+web-log.workspace = true

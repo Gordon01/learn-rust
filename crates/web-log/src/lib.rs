@@ -39,6 +39,8 @@ where
         event.record(&mut FieldRecorder {
             output: &mut output,
         });
+        // Удалить лишний пробел в конце
+        output.pop();
         let _ = self.sender.send(output);
     }
 }

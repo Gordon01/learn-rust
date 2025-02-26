@@ -10,10 +10,8 @@ use poem_openapi::{
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 use tracing::{debug, error};
 
-use crate::{
-    hosts::{Host, Hosts},
-    web_log::{LogTail, TraceReceiver},
-};
+use crate::hosts::{Host, Hosts};
+use web_log::{LogTail, TraceReceiver};
 
 #[derive(ApiResponse)]
 enum GetHostResponce {

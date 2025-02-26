@@ -11,7 +11,6 @@ use web_log::{BroadcastLayer, LogTail};
 mod api;
 mod hosts;
 mod udp_server;
-mod web_log;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
