@@ -27,4 +27,3 @@ cargo install --path crates/rendezvous --locked
 # Перезапустите сервис
 sudo systemctl restart rendezvous
 ```
-

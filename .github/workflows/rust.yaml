@@ -1,25 +1,29 @@
 name: Rust
+
 on:
   push:
+
 defaults:
   run:
     working-directory: ./crates
+
 jobs:
   check:
     name: Check sources
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Install requirements
         run: apt update && apt install -y libdbus-1-dev pkg-config
       - name: Run Cargo
         run: cargo check -q --all --tests --examples
+
   test:
     name: Test
     needs: check
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Install requirements
         run: apt update && apt install -y libdbus-1-dev pkg-config
@@ -27,10 +31,11 @@ jobs:
         run: cargo test -q
         env:
           RUST_BACKTRACE: 1
+
   lint:
     name: Lint
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Install requirements
         run: |

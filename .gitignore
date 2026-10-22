@@ -22,3 +22,7 @@ a.out
 # VSCode settings 
 crates/.vscode/
 .vscode/
+
+# Nix and direnv
+result
+.direnv
